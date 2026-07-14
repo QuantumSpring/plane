@@ -30,6 +30,7 @@ from rest_framework.response import Response
 from plane.app.views.base import BaseAPIView
 from plane.app.permissions import WorkspaceUserPermission
 from plane.db.models import (
+    BotTypeEnum,
     Workspace,
     Project,
     Issue,
@@ -41,6 +42,10 @@ from plane.db.models import (
     ProjectPage,
     WorkspaceMember,
 )
+
+# Humans, plus bots whose bot_type is AGENT (e.g. the "Cyrus" agent bot) — surfaced
+# in the @mention picker. Non-agent bots (e.g. WORKSPACE_SEED) remain hidden.
+HUMAN_OR_AGENT_BOT_Q = Q(member__is_bot=False) | Q(member__bot_type=BotTypeEnum.AGENT)
 
 
 class GlobalSearchEndpoint(BaseAPIView):
@@ -331,9 +336,9 @@ class SearchEndpoint(BaseAPIView):
                     users = (
                         ProjectMember.objects.filter(
                             q,
+                            HUMAN_OR_AGENT_BOT_Q,
                             is_active=True,
                             workspace__slug=slug,
-                            member__is_bot=False,
                             project_id=project_id,
                         )
                         .annotate(
@@ -543,9 +548,9 @@ class SearchEndpoint(BaseAPIView):
                     users = (
                         WorkspaceMember.objects.filter(
                             q,
+                            HUMAN_OR_AGENT_BOT_Q,
                             is_active=True,
                             workspace__slug=slug,
-                            member__is_bot=False,
                         )
                         .annotate(
                             member__avatar_url=Case(
