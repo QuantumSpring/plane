@@ -178,3 +178,39 @@ class TestCommentTrigger:
         )
         run_comment_trigger(workspace, project, issue, comment, create_user)
         assert AgentRun.objects.count() == 0
+
+
+@pytest.mark.unit
+class TestAssignmentTrigger:
+    @pytest.mark.django_db
+    def test_assigning_bot_creates_assignment_run(self, workspace, project, issue, agent_bot, create_user):
+        with patch("plane.bgtasks.agent_run_task.dispatch_agent_run_webhook") as dispatch:
+            agent_run_trigger(
+                type="issue.activity.updated",
+                requested_data=json.dumps({"assignee_ids": [str(agent_bot.id)]}),
+                current_instance=json.dumps({"assignee_ids": []}),
+                issue_id=str(issue.id),
+                actor_id=str(create_user.id),
+                project_id=str(project.id),
+                workspace_id=str(workspace.id),
+                epoch=1,
+            )
+        run = AgentRun.objects.get(issue=issue, agent_user=agent_bot)
+        assert run.type == "assignment"
+        assert issue.name in AgentRunActivity.objects.get(agent_run=run, type="prompt").content["body"]
+        assert dispatch.call_args[0][1] == "created"
+
+    @pytest.mark.django_db
+    def test_already_assigned_bot_not_retriggered(self, workspace, project, issue, agent_bot, create_user):
+        with patch("plane.bgtasks.agent_run_task.dispatch_agent_run_webhook"):
+            agent_run_trigger(
+                type="issue.activity.updated",
+                requested_data=json.dumps({"assignee_ids": [str(agent_bot.id)]}),
+                current_instance=json.dumps({"assignee_ids": [str(agent_bot.id)]}),
+                issue_id=str(issue.id),
+                actor_id=str(create_user.id),
+                project_id=str(project.id),
+                workspace_id=str(workspace.id),
+                epoch=1,
+            )
+        assert AgentRun.objects.count() == 0

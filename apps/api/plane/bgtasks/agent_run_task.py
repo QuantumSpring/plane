@@ -124,6 +124,8 @@ def _handle_assignees_changed(requested_data, current_instance, issue_id, actor_
     new_ids = set(requested.get("assignee_ids", []) or [])
     old_ids = set((current or {}).get("assignee_ids", []) or [])
     added = new_ids - old_ids
+    if not added:
+        return
     actor = User.objects.filter(id=actor_id).first()
     if actor is None or actor.is_bot:
         return
