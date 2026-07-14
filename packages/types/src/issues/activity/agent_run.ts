@@ -31,6 +31,8 @@ export type TAgentRunActivity = {
   created_at: string;
 };
 
+// Models the APP endpoint payload (nested `activities`), NOT the webhook `data` payload
+// (which carries no activities and adds *_detail keys). Don't conflate the two.
 export type TAgentRun = {
   id: string;
   agent_user: string;

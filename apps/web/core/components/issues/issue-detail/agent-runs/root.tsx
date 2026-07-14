@@ -41,11 +41,12 @@ export const AgentRuns = observer(function AgentRuns(props: Props) {
   const runs = getAgentRunsByIssueId(issueId);
   const hasActiveRun = !!runs?.some((run) => ACTIVE_STATUSES.has(run.status));
 
-  // poll while a run is active; stop polling once every run has reached a terminal state
+  // baseline poll catches a run triggered while viewing; tighter cadence once one is active.
+  // TODO: replace the blanket idle poll with event-driven revalidation on comment/assignee change.
   useSWR(
     `ISSUE_AGENT_RUNS_${workspaceSlug}_${projectId}_${issueId}`,
     () => fetchAgentRuns(workspaceSlug, projectId, issueId),
-    { refreshInterval: hasActiveRun ? 5000 : 0 }
+    { refreshInterval: hasActiveRun ? 5000 : 15000 }
   );
 
   if (runs === undefined && loader) return <AgentRunsLoader />;
