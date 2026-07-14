@@ -51,6 +51,7 @@ def get_default_product_tour():
 
 class BotTypeEnum(models.TextChoices):
     WORKSPACE_SEED = "WORKSPACE_SEED", "Workspace Seed"
+    AGENT = "AGENT", "Agent"
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -114,6 +115,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_bot = models.BooleanField(default=False)
     bot_type = models.CharField(max_length=30, verbose_name="Bot Type", blank=True, null=True)
+    agent_slug = models.CharField(max_length=64, unique=True, null=True, blank=True)
 
     # timezone
     USER_TIMEZONE_CHOICES = tuple(zip(pytz.common_timezones, pytz.common_timezones))
