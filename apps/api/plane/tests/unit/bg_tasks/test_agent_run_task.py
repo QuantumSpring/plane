@@ -214,3 +214,83 @@ class TestAssignmentTrigger:
                 epoch=1,
             )
         assert AgentRun.objects.count() == 0
+
+
+@pytest.mark.unit
+class TestWebhookDispatch:
+    @pytest.mark.django_db
+    def test_dispatch_builds_canonical_payload(self, workspace, project, issue, agent_bot, create_user):
+        from plane.bgtasks.agent_run_task import dispatch_agent_run_webhook
+        from plane.db.models import Webhook
+
+        webhook = Webhook.objects.create(
+            workspace=workspace, url="https://example.com/hook", agent_run=True
+        )
+        Webhook.objects.create(  # flag off → must NOT be called
+            workspace=workspace, url="https://example.com/other", agent_run=False
+        )
+        run = AgentRun.objects.create(
+            workspace=workspace, project=project, issue=issue,
+            agent_user=agent_bot, created_by=create_user,
+        )
+        with patch("plane.bgtasks.agent_run_task.webhook_send_task") as send:
+            dispatch_agent_run_webhook(run, "created", "fix the failing test")
+
+        assert send.delay.call_count == 1
+        kwargs = send.delay.call_args.kwargs
+        assert kwargs["webhook_id"] == webhook.id
+        assert kwargs["event"] == "agent_run"
+        assert kwargs["action"] == "created"
+        data = kwargs["event_data"]
+        assert data["id"] == str(run.id)
+        assert data["status"] == "created"
+        assert data["type"] == "comment_thread"
+        assert data["workspace_slug"] == workspace.slug
+        assert data["prompt"] == "fix the failing test"
+        assert data["issue_detail"]["sequence_id"] == issue.sequence_id
+        assert data["issue_detail"]["project_identifier"] == "AGP"
+        assert data["agent_user_detail"]["agent_slug"] == "cyrus"
+
+    @pytest.mark.django_db
+    def test_dispatch_passes_prompted_action(self, workspace, project, issue, agent_bot, create_user):
+        from plane.bgtasks.agent_run_task import dispatch_agent_run_webhook
+        from plane.db.models import Webhook
+
+        Webhook.objects.create(workspace=workspace, url="https://example.com/hook", agent_run=True)
+        run = AgentRun.objects.create(
+            workspace=workspace, project=project, issue=issue,
+            agent_user=agent_bot, created_by=create_user,
+        )
+        with patch("plane.bgtasks.agent_run_task.webhook_send_task") as send:
+            dispatch_agent_run_webhook(run, "prompted", "follow up")
+        assert send.delay.call_args.kwargs["action"] == "prompted"
+
+    @pytest.mark.django_db
+    def test_source_comment_detail_populated(self, workspace, project, issue, agent_bot, create_user):
+        from plane.bgtasks.agent_run_task import build_agent_run_webhook_data
+
+        comment = IssueComment.objects.create(
+            issue=issue, project=project, workspace=workspace,
+            actor=create_user, comment_html="<p>please look at this</p>",
+        )
+        run = AgentRun.objects.create(
+            workspace=workspace, project=project, issue=issue,
+            agent_user=agent_bot, created_by=create_user, source_comment=comment,
+        )
+        data = build_agent_run_webhook_data(run, "prompt")
+        assert data["source_comment_detail"]["id"] == str(comment.id)
+        assert data["source_comment_detail"]["comment_html"] == comment.comment_html
+
+    @pytest.mark.django_db
+    def test_event_data_is_json_serializable(self, workspace, project, issue, agent_bot, create_user):
+        import json
+        from plane.bgtasks.agent_run_task import build_agent_run_webhook_data
+        run = AgentRun.objects.create(
+            workspace=workspace, project=project, issue=issue,
+            agent_user=agent_bot, created_by=create_user,
+        )
+        data = build_agent_run_webhook_data(run, "do the thing")
+        # must not raise:
+        json.dumps(data)
+        assert isinstance(data["id"], str)
+        assert isinstance(data["agent_user"], str)

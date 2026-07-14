@@ -10,9 +10,15 @@ import uuid
 from bs4 import BeautifulSoup
 from celery import shared_task
 
+# Django imports
+from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
+
 # Module imports
+from plane.api.serializers import AgentRunSerializer
 from plane.bgtasks.notification_task import extract_comment_mentions
-from plane.db.models import AgentRun, AgentRunActivity, Issue, IssueComment, User
+from plane.bgtasks.webhook_task import webhook_send_task
+from plane.db.models import AgentRun, AgentRunActivity, Issue, IssueComment, User, Webhook
 from plane.utils.exception_logger import log_exception
 
 
@@ -158,6 +164,69 @@ def agent_run_trigger(
         log_exception(e)
 
 
+def _issue_url(workspace_slug, issue):
+    base = settings.WEB_URL or ""
+    return f"{base}/{workspace_slug}/projects/{issue.project_id}/issues/{issue.id}"
+
+
+def build_agent_run_webhook_data(agent_run, prompt):
+    """Canonical JSON payload consumed by the Cyrus transport. Field names and
+    nesting here are a cross-repo contract - do not rename without coordinating
+    with Cyrus."""
+    slug = agent_run.workspace.slug
+    data = dict(AgentRunSerializer(agent_run).data)
+    data["workspace_slug"] = slug
+    data["prompt"] = prompt
+    data["web_url"] = settings.WEB_URL or ""
+    issue = agent_run.issue
+    data["issue_detail"] = (
+        {
+            "id": str(issue.id),
+            "name": issue.name,
+            "sequence_id": issue.sequence_id,
+            "project_identifier": issue.project.identifier,
+            "description_stripped": _strip_html(issue.description_html),
+            "priority": issue.priority,
+            "state_id": str(issue.state_id) if issue.state_id else None,
+            "url": _issue_url(slug, issue),
+        }
+        if issue
+        else None
+    )
+    source_comment = agent_run.source_comment
+    data["source_comment_detail"] = (
+        {"id": str(source_comment.id), "comment_html": source_comment.comment_html}
+        if source_comment
+        else None
+    )
+    bot = agent_run.agent_user
+    data["agent_user_detail"] = {
+        "id": str(bot.id),
+        "display_name": bot.display_name,
+        "agent_slug": bot.agent_slug,
+    }
+    # Normalize to plain JSON primitives so this builder returns a clean dict for
+    # direct callers/tests (DRF emits raw uuid.UUID/datetime objects for pk/fk
+    # fields like id/agent_user/issue/project/workspace). webhook_send_task also
+    # normalizes on its own path, so this round-trip is defensive, not required
+    # to avoid a crash there.
+    return json.loads(json.dumps(data, cls=DjangoJSONEncoder))
+
+
 def dispatch_agent_run_webhook(agent_run, action, prompt):
-    """Implemented in Task 7 - placeholder so tests can patch it."""
-    pass
+    webhooks = Webhook.objects.filter(
+        workspace_id=agent_run.workspace_id, is_active=True, agent_run=True
+    )
+    if not webhooks.exists():
+        return
+    event_data = build_agent_run_webhook_data(agent_run, prompt)
+    for webhook in webhooks:
+        webhook_send_task.delay(
+            webhook_id=webhook.id,
+            slug=agent_run.workspace.slug,
+            event="agent_run",
+            event_data=event_data,
+            action=action,
+            current_site=settings.WEB_URL or "",
+            activity=None,
+        )
