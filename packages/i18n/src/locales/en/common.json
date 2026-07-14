@@ -717,7 +717,21 @@
     "developer": "Developer",
     "work_structure": "Work structure",
     "execution": "Execution",
-    "administration": "Administration"
+    "administration": "Administration",
+    "agent_runs": {
+      "title": "Agent runs",
+      "pr": "PR",
+      "status": {
+        "created": "Queued",
+        "in_progress": "Running",
+        "awaiting": "Waiting for input",
+        "completed": "Completed",
+        "stopping": "Stopping",
+        "stopped": "Stopped",
+        "failed": "Failed",
+        "stale": "Stale"
+      }
+    }
   },
   "chart": {
     "x_axis": "X-axis",

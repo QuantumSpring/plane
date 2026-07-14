@@ -18,6 +18,7 @@ import useKeypress from "@/hooks/use-keypress";
 import usePeekOverviewOutsideClickDetector from "@/hooks/use-peek-overview-outside-click";
 // local imports
 import type { TIssueOperations } from "../issue-detail";
+import { AgentRuns } from "../issue-detail/agent-runs";
 import { IssueActivity } from "../issue-detail/issue-activity";
 import { IssueDetailWidgets } from "../issue-detail-widgets";
 import { IssuePeekOverviewError } from "./error";
@@ -205,6 +206,8 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                       disabled={disabled || is_archived}
                     />
 
+                    <AgentRuns workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
+
                     <IssueActivity
                       workspaceSlug={workspaceSlug}
                       projectId={projectId}
@@ -237,6 +240,8 @@ export const IssueView = observer(function IssueView(props: IIssueView) {
                             issueServiceType={EIssueServiceType.ISSUES}
                           />
                         </div>
+
+                        <AgentRuns workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
 
                         <IssueActivity
                           workspaceSlug={workspaceSlug}

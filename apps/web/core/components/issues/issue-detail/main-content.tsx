@@ -32,6 +32,7 @@ import { IssueDetailWidgets } from "../issue-detail-widgets";
 import { NameDescriptionUpdateStatus } from "../issue-update-status";
 import { PeekOverviewProperties } from "../peek-overview/properties";
 import { IssueTitleInput } from "../title-input";
+import { AgentRuns } from "./agent-runs";
 import { IssueActivity } from "./issue-activity";
 import { IssueParentDetail } from "./parent";
 import { IssueReaction } from "./reactions";
@@ -176,10 +177,15 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
                 isRestoreDisabled: !isEditable || isArchived,
               }}
               fetchHandlers={{
-                listDescriptionVersions: (issueId) =>
-                  workItemVersionService.listDescriptionVersions(workspaceSlug, projectId, issueId),
-                retrieveDescriptionVersion: (issueId, versionId) =>
-                  workItemVersionService.retrieveDescriptionVersion(workspaceSlug, projectId, issueId, versionId),
+                listDescriptionVersions: (descriptionVersionIssueId) =>
+                  workItemVersionService.listDescriptionVersions(workspaceSlug, projectId, descriptionVersionIssueId),
+                retrieveDescriptionVersion: (descriptionVersionIssueId, versionId) =>
+                  workItemVersionService.retrieveDescriptionVersion(
+                    workspaceSlug,
+                    projectId,
+                    descriptionVersionIssueId,
+                    versionId
+                  ),
               }}
               handleRestore={(descriptionHTML) => editorRef.current?.setEditorValue(descriptionHTML, true)}
               projectId={projectId}
@@ -207,6 +213,8 @@ export const IssueMainContent = observer(function IssueMainContent(props: Props)
           disabled={!isEditable || isArchived}
         />
       )}
+
+      <AgentRuns workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
 
       <IssueActivity workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} disabled={isArchived} />
     </>
