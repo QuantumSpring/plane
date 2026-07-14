@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+export * from "./agent_run.service";
 export * from "./issue_archive.service";
 export * from "./issue.service";
 export * from "./issue_reaction.service";
