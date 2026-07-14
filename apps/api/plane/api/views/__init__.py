@@ -14,6 +14,11 @@ from .state import (
     StateDetailAPIEndpoint,
 )
 
+from .agent_run import (
+    AgentRunListCreateAPIEndpoint,
+    AgentRunDetailAPIEndpoint,
+)
+
 from .issue import (
     WorkspaceIssueAPIEndpoint,
     IssueListCreateAPIEndpoint,

@@ -65,6 +65,14 @@ class AgentRunCreateSerializer(BaseSerializer):
             "type",
         ]
 
+    def validate(self, data):
+        slug = self.context.get("slug")
+        for field in ("issue", "project", "comment", "source_comment"):
+            obj = data.get(field)
+            if obj is not None and slug is not None and obj.workspace.slug != slug:
+                raise serializers.ValidationError({field: "does not belong to this workspace"})
+        return data
+
 
 class AgentRunActivitySerializer(BaseSerializer):
     """
