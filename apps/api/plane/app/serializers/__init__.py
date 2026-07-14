@@ -54,6 +54,7 @@ from .cycle import (
     CycleUserPropertiesSerializer,
 )
 from .asset import FileAssetSerializer
+from .agent_run import AgentRunAppSerializer, AgentRunActivityAppSerializer
 from .issue import (
     IssueCreateSerializer,
     IssueActivitySerializer,

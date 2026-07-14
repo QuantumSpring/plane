@@ -167,6 +167,8 @@ from .module.archive import ModuleArchiveUnarchiveEndpoint
 
 from .api import ApiTokenEndpoint
 
+from .issue.agent_run import IssueAgentRunsEndpoint
+
 from .page.base import (
     PageViewSet,
     PageFavoriteViewSet,
