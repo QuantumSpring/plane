@@ -17,6 +17,8 @@ from .state import (
 from .agent_run import (
     AgentRunListCreateAPIEndpoint,
     AgentRunDetailAPIEndpoint,
+    AgentRunActivityListCreateAPIEndpoint,
+    AgentRunActivityDetailAPIEndpoint,
 )
 
 from .issue import (

@@ -122,7 +122,6 @@ class AgentRunActivityCreateSerializer(BaseSerializer):
             "signal",
             "signal_metadata",
             "ephemeral",
-            "project",
         ]
 
     def validate(self, data):
