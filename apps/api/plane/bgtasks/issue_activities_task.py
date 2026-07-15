@@ -16,6 +16,7 @@ from django.utils import timezone
 
 # Module imports
 from plane.app.serializers import IssueActivitySerializer
+from plane.bgtasks.agent_run_task import agent_run_trigger
 from plane.bgtasks.notification_task import notifications
 from plane.db.models import (
     CommentReaction,
@@ -1596,6 +1597,23 @@ def issue_activity(
                 ),
                 requested_data=requested_data,
                 current_instance=current_instance,
+            )
+
+        # Agent runs: detect bot @mentions and bot assignments
+        if type in (
+            "comment.activity.created",
+            "issue.activity.created",
+            "issue.activity.updated",
+        ):
+            agent_run_trigger.delay(
+                type=type,
+                requested_data=requested_data,
+                current_instance=current_instance,
+                issue_id=issue_id,
+                actor_id=actor_id,
+                project_id=project_id,
+                workspace_id=str(workspace_id),
+                epoch=epoch,
             )
 
         return

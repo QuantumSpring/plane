@@ -39,6 +39,11 @@ export const INDIVIDUAL_WEBHOOK_OPTIONS: {
     label: "Work item comments",
     description: "Comment posted, updated, or deleted",
   },
+  {
+    key: "agent_run",
+    label: "Agent runs",
+    description: "Agent run created or prompted (bot mention or assignment)",
+  },
 ];
 
 type Props = {

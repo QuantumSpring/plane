@@ -25,6 +25,8 @@ import type {
   TActivityLoader,
 } from "@/plane-web/store/issue/issue-details/activity.store";
 import type { IIssueRootStore } from "../root.store";
+import { IssueAgentRunStore } from "./agent_run.store";
+import type { IIssueAgentRunStore, IIssueAgentRunStoreActions } from "./agent_run.store";
 import { IssueAttachmentStore } from "./attachment.store";
 import type { IIssueAttachmentStore, IIssueAttachmentStoreActions } from "./attachment.store";
 import { IssueCommentStore } from "./comment.store";
@@ -75,7 +77,8 @@ export interface IIssueDetail
     IIssueRelationStoreActions,
     IIssueActivityStoreActions,
     IIssueCommentStoreActions,
-    IIssueCommentReactionStoreActions {
+    IIssueCommentReactionStoreActions,
+    IIssueAgentRunStoreActions {
   // observables
   peekIssue: TPeekIssue | undefined;
   relationKey: TIssueRelationTypes | null;
@@ -108,7 +111,7 @@ export interface IIssueDetail
   toggleSubIssuesModal: (value: string | null) => void;
   toggleDeleteAttachmentModal: (attachmentId: string | null) => void;
   setOpenWidgets: (state: TWorkItemWidgets[]) => void;
-  setLastWidgetAction: (action: TWorkItemWidgets) => void;
+  setLastWidgetAction: (widgetAction: TWorkItemWidgets) => void;
   toggleOpenWidget: (state: TWorkItemWidgets) => void;
   setRelationKey: (relationKey: TIssueRelationTypes | null) => void;
   setIssueCrudOperationState: (state: TIssueCrudOperationState) => void;
@@ -124,6 +127,7 @@ export interface IIssueDetail
   link: IIssueLinkStore;
   subscription: IIssueSubscriptionStore;
   relation: IIssueRelationStore;
+  agentRun: IIssueAgentRunStore;
 }
 
 export abstract class IssueDetail implements IIssueDetail {
@@ -167,6 +171,7 @@ export abstract class IssueDetail implements IIssueDetail {
   activity: IIssueActivityStore;
   comment: IIssueCommentStore;
   commentReaction: IIssueCommentReactionStore;
+  agentRun: IIssueAgentRunStore;
 
   constructor(rootStore: IIssueRootStore, serviceType: TIssueServiceType) {
     makeObservable(this, {
@@ -219,6 +224,7 @@ export abstract class IssueDetail implements IIssueDetail {
     this.link = new IssueLinkStore(this, serviceType);
     this.subscription = new IssueSubscriptionStore(this, serviceType);
     this.relation = new IssueRelationStore(this);
+    this.agentRun = new IssueAgentRunStore(this);
   }
 
   // computed
@@ -259,8 +265,8 @@ export abstract class IssueDetail implements IIssueDetail {
     this.openWidgets = state;
     if (this.lastWidgetAction) this.lastWidgetAction = null;
   };
-  setLastWidgetAction = (action: TWorkItemWidgets) => {
-    this.openWidgets = [action];
+  setLastWidgetAction = (widgetAction: TWorkItemWidgets) => {
+    this.openWidgets = [widgetAction];
   };
   toggleOpenWidget = (state: TWorkItemWidgets) => {
     if (this.openWidgets && this.openWidgets.includes(state))
@@ -417,4 +423,8 @@ export abstract class IssueDetail implements IIssueDetail {
     reaction: string,
     userId: string
   ) => this.commentReaction.removeCommentReaction(workspaceSlug, projectId, commentId, reaction, userId);
+
+  // agent runs
+  fetchAgentRuns = async (workspaceSlug: string, projectId: string, issueId: string) =>
+    this.agentRun.fetchAgentRuns(workspaceSlug, projectId, issueId);
 }
