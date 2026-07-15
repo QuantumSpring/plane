@@ -34,10 +34,21 @@ const ACTIVITY_ICON: Record<TAgentRunActivity["type"], typeof Bot> = {
   error: AlertTriangle,
 };
 
-const getActivityBody = (activity: TAgentRunActivity): string =>
-  activity.content.type === "action"
-    ? `${activity.content.action} ${JSON.stringify(activity.content.parameters)}`
-    : activity.content.body;
+// Render an activity as one line. Agents vary in how they shape `action` content
+// (the SDK uses `parameters: object`; some agents send `parameter: string`), so read
+// defensively and never surface a literal "undefined" for a missing field.
+const getActivityBody = (activity: TAgentRunActivity): string => {
+  const content = activity.content as Record<string, unknown>;
+  if (content.type === "action") {
+    const label = typeof content.action === "string" ? content.action : "action";
+    const raw = content.parameters ?? content.parameter;
+    let params = "";
+    if (typeof raw === "string") params = raw;
+    else if (raw && typeof raw === "object" && Object.keys(raw).length > 0) params = JSON.stringify(raw);
+    return params ? `${label} — ${params}` : label;
+  }
+  return typeof content.body === "string" ? content.body : "";
+};
 
 type Props = {
   run: TAgentRun;
